@@ -20,6 +20,10 @@ Each participant completes all 27 condition-blocks.
 3. Open:
    `http://localhost:8000/code5.html`
 
+## Hosted Version (GitHub Pages)
+You can run the experiment directly at:
+`https://spacejesustm.github.io/csc428-A2/code5.html`
+
 ## No-Install Option (Non-Technical)
 If you are running with participants who are not technical:
 1. Send them the project as a `.zip`.
@@ -77,6 +81,6 @@ Additional analysis/reproducibility fields include:
 - trial timestamps and click metadata
 
 ## Troubleshooting
-- If files do not download, allow downloads for `localhost` in browser settings and rerun.
+- If files do not download, allow downloads for the current site (`localhost` or GitHub Pages domain) and rerun.
 - If the page is blank, confirm the local server is running and the URL is correct.
 - If your browser blocks CDN scripts, switch browsers or check network restrictions.

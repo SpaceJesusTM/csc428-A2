@@ -1,0 +1,90 @@
+<!-- For GitHub Pages deployment.  -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CSC428 A2 Controlled Experiment</title>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/cursor.js"></script>
+    <script src="js/logger.js"></script>
+    <script src="js/studyRunner.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #f3f3f3;
+        font-family: Arial, sans-serif;
+      }
+
+      #studyApp {
+        width: 960px;
+        margin: 16px auto;
+      }
+
+      #studyStatus {
+        background: #ffffff;
+        border: 1px solid #999;
+        padding: 10px 12px;
+        box-sizing: border-box;
+      }
+
+      #studyInstructions {
+        margin-top: 10px;
+        background: #fffef5;
+        border: 1px solid #b8b08b;
+        padding: 10px 12px;
+        box-sizing: border-box;
+        color: #1d1d1d;
+      }
+
+      #studyInstructions h2 {
+        margin: 0 0 6px 0;
+        font-size: 18px;
+      }
+
+      #studyInstructions ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      #studyInstructions li {
+        margin: 4px 0;
+      }
+
+      .statusLine {
+        min-height: 20px;
+        line-height: 1.35;
+        color: #111;
+      }
+
+      #bubbleCursor {
+        width: 960px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="studyApp">
+      <div id="studyStatus">
+        <div class="statusLine statusLine1"></div>
+        <div class="statusLine statusLine2"></div>
+        <div class="statusLine statusLine3"></div>
+        <div class="statusLine statusLine4"></div>
+      </div>
+      <div id="studyInstructions">
+        <h2>Task Instructions</h2>
+        <ul>
+          <li>Click the salmon target as quickly and accurately as possible.</li>
+          <li>Wrong-target clicks and background clicks count as errors.</li>
+          <li>Each trial ends on the first correct click.</li>
+          <li>Timing starts only after you click to begin a condition.</li>
+          <li>Use rest breaks between conditions.</li>
+        </ul>
+      </div>
+      <div id="bubbleCursor"></div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -20,13 +20,22 @@
     var h = config.canvasHeight;
     var numTargetsPerCondition = config.numTargetsPerCondition;
     var trialsPerCondition = config.trialsPerCondition;
+    var blocksPerCondition = Math.max(1, Math.floor(config.blocksPerCondition || 1));
+    var practiceTrials = Math.max(0, Math.floor(config.practiceTrials || 0));
     var areaRadius = config.areaRadius;
 
     var studyState = "rest"; // rest | running | complete
     var isStudyRunning = false;
+    var isPracticeMode = false;
+    var practiceCompleted = practiceTrials === 0;
 
-    var conditionCursor = -1;
+    var runBlocks = buildRunBlocks(conditions, blocksPerCondition);
+    var practiceCondition = buildPracticeCondition(runBlocks, conditions);
+    var runBlockCursor = -1;
+    var currentRunBlock = null;
     var currentCondition = null;
+    var currentConditionBlockIndex = 1;
+    var globalBlockNumber = 0;
     var targets = [];
     var clickTarget = -1;
 
@@ -214,13 +223,17 @@
     function logEvent(eventType, x, y, capturedTargetId, isGoalSelection) {
       var conditionIndex = "";
       var blockNumber = "";
+      var conditionBlockIndex = "";
+      var blocksPerConditionValue = "";
       var technique = "";
       var sizeLevel = "";
       var spacingLevel = "";
 
       if (currentCondition) {
         conditionIndex = currentCondition.conditionIndex;
-        blockNumber = currentCondition.blockNumber;
+        blockNumber = globalBlockNumber;
+        conditionBlockIndex = currentConditionBlockIndex;
+        blocksPerConditionValue = blocksPerCondition;
         technique = currentCondition.technique;
         sizeLevel = currentCondition.sizeLevel;
         spacingLevel = currentCondition.spacingLevel;
@@ -233,6 +246,8 @@
         studyState,
         conditionIndex,
         blockNumber,
+        conditionBlockIndex,
+        blocksPerConditionValue,
         trialInBlock,
         globalTrialNumber,
         technique,
@@ -247,6 +262,38 @@
         missClicks,
         round3(pathLengthPx),
       ]);
+    }
+
+    function buildRunBlocks(conditionList, blockCountPerCondition) {
+      var schedule = [];
+      var blockNumber = 1;
+
+      for (var i = 0; i < conditionList.length; i++) {
+        for (var b = 1; b <= blockCountPerCondition; b++) {
+          schedule.push({
+            condition: conditionList[i],
+            conditionBlockIndex: b,
+            blockNumber: blockNumber,
+          });
+          blockNumber++;
+        }
+      }
+
+      return schedule;
+    }
+
+    function buildPracticeCondition(runBlockList, conditionList) {
+      return {
+        conditionIndex: "PRACTICE",
+        factorConditionId: "PRACTICE",
+        technique: "POINT",
+        techniqueOrderIndex: -1,
+        techniqueBlockConditionIndex: -1,
+        sizeLevel: "L",
+        radiusPx: 22,
+        spacingLevel: "MED",
+        minSepPx: 18,
+      };
     }
 
     function getTechniqueBriefing(technique) {
@@ -276,6 +323,28 @@
       };
     }
 
+    function showPracticeIntroScreen() {
+      studyState = "rest";
+      isStudyRunning = false;
+      isPracticeMode = false;
+      clearTargets();
+      setCursorVisibility(false);
+      setTrialCounterText("Practice: 0/" + practiceTrials);
+
+      var briefing = getTechniqueBriefing(practiceCondition.technique);
+
+      setStatusText(
+        "Practice block (not recorded).",
+        "Complete " +
+          practiceTrials +
+          " practice trial(s) before the real experiment starts.",
+        briefing.line1,
+        briefing.line2
+      );
+      setCanvasPrompt(true, "Click Here When Ready", "Start practice block");
+      logEvent("practice_intro", "", "", "", "");
+    }
+
     function showRestScreen(isFirstScreen) {
       studyState = "rest";
       isStudyRunning = false;
@@ -283,53 +352,49 @@
       setCursorVisibility(false);
       setTrialCounterText("Trial Progress: 0/" + trialsPerCondition);
 
-      var nextCondition = conditions[conditionCursor + 1];
-      if (!nextCondition) return;
+      var nextRunBlock = runBlocks[runBlockCursor + 1];
+      if (!nextRunBlock) return;
 
+      var nextCondition = nextRunBlock.condition;
       var orderLabel = techniqueOrder.join(" -> ");
-      var isTechniqueTransition = nextCondition.techniqueBlockConditionIndex === 0;
+      var isTechniqueTransition =
+        nextCondition.techniqueBlockConditionIndex === 0 &&
+        nextRunBlock.conditionBlockIndex === 1;
+      var isSameConditionContinuation =
+        currentCondition &&
+        nextCondition.conditionIndex === currentCondition.conditionIndex;
       var briefing = getTechniqueBriefing(nextCondition.technique);
+      var nextBlockLabel =
+        "Block " +
+        nextRunBlock.conditionBlockIndex +
+        "/" +
+        blocksPerCondition +
+        " for condition " +
+        (nextCondition.conditionIndex + 1) +
+        "/" +
+        conditions.length;
 
       if (isFirstScreen) {
-        if (isTechniqueTransition) {
-          setStatusText(
-            "Welcome. Read instructions before starting.",
-            "Participant " +
-              participantId +
-              " | Technique order: " +
-              orderLabel +
-              " | Group " +
-              (participantOrderGroup + 1),
-            briefing.line1,
-            briefing.line2
-          );
-        } else {
-          setStatusText(
-            "Welcome. Read the instructions below before starting.",
-            "Participant " +
-              participantId +
-              " | Technique order: " +
-              orderLabel +
-              " | Group " +
-              (participantOrderGroup + 1),
-            "You will complete " +
-              conditions.length +
-              " conditions, each with " +
-              trialsPerCondition +
-              " trials.",
-            "Click when ready. Timing starts after you begin each condition."
-          );
-        }
+        setStatusText(
+          "Welcome. Read instructions before starting.",
+          "Participant " +
+            participantId +
+            " | Technique order: " +
+            orderLabel +
+            " | Group " +
+            (participantOrderGroup + 1),
+          briefing.line1,
+          briefing.line2
+        );
         setCanvasPrompt(
           true,
           "Click Here When Ready",
           "Start " +
             nextCondition.technique +
-            " tasks (condition " +
-            (nextCondition.conditionIndex + 1) +
-            " of " +
-            conditions.length +
-            ")"
+            " tasks | " +
+            nextBlockLabel +
+            " | Total blocks: " +
+            runBlocks.length
         );
       } else {
         if (isTechniqueTransition) {
@@ -337,7 +402,14 @@
             "New cursor technique: " + nextCondition.technique,
             briefing.line1,
             briefing.line2,
-            "Click when ready to begin this technique block."
+            nextBlockLabel + ". Click when ready to begin."
+          );
+        } else if (isSameConditionContinuation) {
+          setStatusText(
+            "Block complete. Continue same condition.",
+            nextBlockLabel,
+            "Same technique/size/spacing settings continue for this condition.",
+            "Click when ready to continue."
           );
         } else {
           setStatusText(
@@ -352,8 +424,13 @@
               nextCondition.sizeLevel +
               ", spacing " +
               nextCondition.spacingLevel +
-              ")",
-            "Each condition has " + trialsPerCondition + " trials.",
+              ") | " +
+              nextBlockLabel,
+            "Each block has " +
+              trialsPerCondition +
+              " trials. Each condition has " +
+              blocksPerCondition +
+              " block(s).",
             "Click when ready to continue."
           );
         }
@@ -361,11 +438,8 @@
           true,
           "Click Here When Ready",
           isTechniqueTransition
-            ? "Begin " + nextCondition.technique + " tasks"
-            : "Begin condition " +
-              (nextCondition.conditionIndex + 1) +
-              " of " +
-              conditions.length
+            ? "Begin " + nextCondition.technique + " tasks | " + nextBlockLabel
+            : "Begin " + nextBlockLabel
         );
       }
 
@@ -373,11 +447,38 @@
     }
 
     function updateRunningStatus() {
+      if (isPracticeMode) {
+        setStatusText(
+          "Practice block (not recorded): " + practiceCondition.technique,
+          "Practice trial " +
+            trialInBlock +
+            " / " +
+            practiceTrials +
+            " | size " +
+            practiceCondition.sizeLevel +
+            " (" +
+            practiceCondition.radiusPx +
+            "px) | spacing " +
+            practiceCondition.spacingLevel +
+            " (" +
+            practiceCondition.minSepPx +
+            "px)",
+          "Click the salmon target. Trial ends on first correct click.",
+          "Wrong-target clicks: " + wrongTargetClicks + " | Miss clicks: " + missClicks
+        );
+        setTrialCounterText("Practice: " + trialInBlock + "/" + practiceTrials);
+        return;
+      }
+
       setStatusText(
         "Condition " +
           (currentCondition.conditionIndex + 1) +
           " / " +
           conditions.length +
+          " | Block " +
+          currentConditionBlockIndex +
+          " / " +
+          blocksPerCondition +
           ": " +
           currentCondition.technique +
           " | size " +
@@ -393,7 +494,7 @@
           trialInBlock +
           " / " +
           trialsPerCondition +
-          " in this condition | Global trial " +
+          " in this block | Global trial " +
           globalTrialNumber,
         "Click the salmon target. Trial ends on the first correct click.",
         "Wrong-target clicks: " + wrongTargetClicks + " | Miss clicks: " + missClicks
@@ -413,7 +514,7 @@
 
     function startTrial() {
       trialInBlock++;
-      globalTrialNumber++;
+      if (!isPracticeMode) globalTrialNumber++;
 
       clickTarget = pickNextTarget(clickTarget);
 
@@ -444,66 +545,120 @@
       var throughput = mtSec > 0 ? trialID / mtSec : 0;
       var totalErrors = wrongTargetClicks + missClicks;
 
-      logger.appendTrialRow([
-        participantId,
-        participantOrderGroup + 1,
-        runStartIso,
-        sessionTag,
-        currentCondition.conditionIndex,
-        currentCondition.factorConditionId,
-        currentCondition.blockNumber,
-        currentCondition.technique,
-        currentCondition.techniqueOrderIndex,
-        currentCondition.techniqueBlockConditionIndex,
-        currentCondition.sizeLevel,
-        currentCondition.radiusPx,
-        currentCondition.spacingLevel,
-        currentCondition.minSepPx,
-        numTargetsPerCondition,
-        w,
-        h,
-        trialInBlock,
-        globalTrialNumber,
-        clickTarget,
-        round3(trialGoalX),
-        round3(trialGoalY),
-        round3(trialPrevGoalX),
-        round3(trialPrevGoalY),
-        round3(trialA),
-        round3(trialW),
-        round3(trialID),
-        timeMs,
-        wrongTargetClicks,
-        missClicks,
-        totalErrors,
-        round3(pathLengthPx),
-        round3(throughput),
-        trialStartTimestampMs,
-        trialEndTimestampMs,
+      if (!isPracticeMode) {
+        logger.appendTrialRow([
+          participantId,
+          participantOrderGroup + 1,
+          runStartIso,
+          sessionTag,
+          currentCondition.conditionIndex,
+          currentCondition.factorConditionId,
+          globalBlockNumber,
+          currentConditionBlockIndex,
+          blocksPerCondition,
+          currentCondition.technique,
+          currentCondition.techniqueOrderIndex,
+          currentCondition.techniqueBlockConditionIndex,
+          currentCondition.sizeLevel,
+          currentCondition.radiusPx,
+          currentCondition.spacingLevel,
+          currentCondition.minSepPx,
+          numTargetsPerCondition,
+          w,
+          h,
+          trialInBlock,
+          globalTrialNumber,
+          clickTarget,
+          round3(trialGoalX),
+          round3(trialGoalY),
+          round3(trialPrevGoalX),
+          round3(trialPrevGoalY),
+          round3(trialA),
+          round3(trialW),
+          round3(trialID),
+          timeMs,
+          wrongTargetClicks,
+          missClicks,
+          totalErrors,
+          round3(pathLengthPx),
+          round3(throughput),
+          trialStartTimestampMs,
+          trialEndTimestampMs,
+          round3(mouse[0]),
+          round3(mouse[1]),
+          capturedTargetIdx,
+        ]);
+      }
+
+      logEvent(
+        isPracticeMode ? "practice_trial_success" : "trial_success",
         round3(mouse[0]),
         round3(mouse[1]),
         capturedTargetIdx,
-      ]);
-
-      logEvent("trial_success", round3(mouse[0]), round3(mouse[1]), capturedTargetIdx, 1);
+        1
+      );
 
       previousGoal = [trialGoalX, trialGoalY];
 
-      if (trialInBlock >= trialsPerCondition) {
-        endCondition();
+      var maxTrialsInCurrentBlock = isPracticeMode ? practiceTrials : trialsPerCondition;
+      if (trialInBlock >= maxTrialsInCurrentBlock) {
+        if (isPracticeMode) endPracticeBlock();
+        else endBlock();
       } else {
         startTrial();
       }
     }
 
-    function startNextCondition() {
-      conditionCursor++;
-      if (conditionCursor >= conditions.length) {
+    function startPracticeBlock() {
+      currentRunBlock = null;
+      currentCondition = practiceCondition;
+      currentConditionBlockIndex = 1;
+      globalBlockNumber = 0;
+
+      targets = initTargets(
+        numTargetsPerCondition,
+        practiceCondition.radiusPx,
+        practiceCondition.radiusPx,
+        practiceCondition.minSepPx,
+        w,
+        h,
+        [counterRect]
+      );
+
+      if (targets.length !== numTargetsPerCondition) {
+        alert("Could not place targets for practice block. Try reducing target count.");
         finishStudy();
         return;
       }
 
-      currentCondition = conditions[conditionCursor];
+      renderTargets();
+      setCursorVisibility(true);
+      setCanvasPrompt(false, "", "");
+
+      studyState = "running";
+      isStudyRunning = true;
+      isPracticeMode = true;
+
+      trialInBlock = 0;
+      clickTarget = -1;
+      previousGoal = [w / 2, h / 2];
+
+      logEvent("practice_block_start", "", "", "", "");
+      startTrial();
+    }
+
+    function startNextBlock() {
+      isPracticeMode = false;
+      runBlockCursor++;
+      if (runBlockCursor >= runBlocks.length) {
+        finishStudy();
+        return;
+      }
+
+      currentRunBlock = runBlocks[runBlockCursor];
+      currentCondition = currentRunBlock.condition;
+      currentConditionBlockIndex = currentRunBlock.conditionBlockIndex;
+      globalBlockNumber = currentRunBlock.blockNumber;
 
       targets = initTargets(
         numTargetsPerCondition,
@@ -536,18 +691,30 @@
       clickTarget = -1;
       previousGoal = [w / 2, h / 2];
 
-      logEvent("condition_start", "", "", "", "");
+      logEvent("block_start", "", "", "", "");
       startTrial();
     }
 
-    function endCondition() {
-      logEvent("condition_end", "", "", "", "");
+    function endPracticeBlock() {
+      logEvent("practice_block_end", "", "", "", "");
+
+      isStudyRunning = false;
+      isPracticeMode = false;
+      practiceCompleted = true;
+      clearTargets();
+      setCursorVisibility(false);
+
+      showRestScreen(true);
+    }
+
+    function endBlock() {
+      logEvent("block_end", "", "", "", "");
 
       isStudyRunning = false;
       clearTargets();
       setCursorVisibility(false);
 
-      if (conditionCursor >= conditions.length - 1) {
+      if (runBlockCursor >= runBlocks.length - 1) {
         finishStudy();
       } else {
         showRestScreen(false);
@@ -588,7 +755,8 @@
 
     function handleClick(mouse) {
       if (studyState === "rest") {
-        startNextCondition();
+        if (!practiceCompleted) startPracticeBlock();
+        else startNextBlock();
         return;
       }
 
@@ -626,7 +794,8 @@
       handleClick(d3.mouse(this));
     });
 
-    showRestScreen(true);
+    if (practiceCompleted) showRestScreen(true);
+    else showPracticeIntroScreen();
 
     return {
       svg: svg,

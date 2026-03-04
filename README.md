@@ -39,9 +39,11 @@ On load, the page prompts for a participant ID.
 - If non-numeric text is entered, the program still runs, and defaults to group-1 technique ordering logic.
 
 ## Study Flow
+- A practice block runs first (`practiceTrials`, default `5`) and is not included in trial-summary analysis logs.
 - The study shows a transition/rest screen before each condition-block.
-- Click once to start the next condition.
-- Each condition has 10 trials.
+- Click once to start the next block.
+- Each condition runs `blocksPerCondition` blocks (default `1`).
+- Each block runs `trialsPerCondition` trials (default `5`).
 - During a trial, click the highlighted (salmon) target as quickly and accurately as possible.
 - Errors are correctable: trials end only on the first correct click.
 - Rest breaks occur between condition-blocks.
@@ -55,9 +57,9 @@ Technique order is assigned by participant group:
 Within each technique, the 9 size x spacing combinations are randomized.
 
 ## Output Files
-At study completion, two tab-separated files are downloaded:
-- `P<participant>_trial_summary_<timestamp>.tsv`
-- `P<participant>_event_log_<timestamp>.tsv`
+At study completion, two CSV files are downloaded:
+- `P<participant>_trial_summary_<timestamp>.csv`
+- `P<participant>_event_log_<timestamp>.csv`
 
 The trial summary file is the main dataset for analysis.
 Files are saved by the browser to its default download folder (usually `Downloads`), unless the browser is configured to ask for a save location.

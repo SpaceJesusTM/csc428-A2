@@ -3,7 +3,9 @@
     canvasWidth: 960,
     canvasHeight: 500,
     numTargetsPerCondition: 30,
-    trialsPerCondition: 10,
+    trialsPerCondition: 5,
+    blocksPerCondition: 1,
+    practiceTrials: 5,
     areaRadius: 50,
     sizeLevels: [
       { sizeLevel: "S", radiusPx: 10 },

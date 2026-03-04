@@ -9,6 +9,8 @@
     "condition_index",
     "factor_condition_id",
     "block_number",
+    "condition_block_index",
+    "blocks_per_condition",
     "technique",
     "technique_order_index",
     "technique_block_condition_index",
@@ -40,7 +42,7 @@
     "last_click_x",
     "last_click_y",
     "captured_target_id_correct_click",
-  ].join("\t");
+  ].join(",");
 
   var eventLogHeader = [
     "participant_id",
@@ -49,6 +51,8 @@
     "study_state",
     "condition_index",
     "block_number",
+    "condition_block_index",
+    "blocks_per_condition",
     "trial_in_block",
     "global_trial_number",
     "technique",
@@ -62,19 +66,27 @@
     "wrong_target_clicks",
     "miss_clicks",
     "path_length_px",
-  ].join("\t");
+  ].join(",");
+
+  function escapeCsvValue(value) {
+    var text = sanitizeTsv(value);
+    if (/[",\n]/.test(text)) {
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+    return text;
+  }
 
   function appendSanitizedRow(rows, values) {
     var row = [];
     for (var i = 0; i < values.length; i++) {
-      row.push(sanitizeTsv(values[i]));
+      row.push(escapeCsvValue(values[i]));
     }
-    rows.push(row.join("\t"));
+    rows.push(row.join(","));
   }
 
   function downloadTextFile(content, filename) {
     var blob = new Blob([content], {
-      type: "text/tab-separated-values;charset=utf-8;",
+      type: "text/csv;charset=utf-8;",
     });
 
     if (typeof saveAs === "function") {
@@ -104,9 +116,9 @@
       },
       exportFiles: function (participantSlug, sessionTag) {
         var trialFilename =
-          "P" + participantSlug + "_trial_summary_" + sessionTag + ".tsv";
+          "P" + participantSlug + "_trial_summary_" + sessionTag + ".csv";
         var eventFilename =
-          "P" + participantSlug + "_event_log_" + sessionTag + ".tsv";
+          "P" + participantSlug + "_event_log_" + sessionTag + ".csv";
 
         downloadTextFile(trialRows.join("\n") + "\n", trialFilename);
         downloadTextFile(eventRows.join("\n") + "\n", eventFilename);

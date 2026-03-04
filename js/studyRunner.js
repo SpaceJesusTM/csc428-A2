@@ -249,6 +249,33 @@
       ]);
     }
 
+    function getTechniqueBriefing(technique) {
+      if (technique === "POINT") {
+        return {
+          line1:
+            "POINT: selection happens only when the cursor point is inside the target.",
+          line2:
+            "There is no area assistance. Move the pointer tip into the target circle to select.",
+        };
+      }
+
+      if (technique === "AREA") {
+        return {
+          line1:
+            "AREA: the gray cursor area can assist selection when exactly one target is inside it.",
+          line2:
+            "If the center point is inside a target, it behaves like point selection for that target.",
+        };
+      }
+
+      return {
+        line1:
+          "BUBBLE: the cursor bubble resizes dynamically to capture the nearest target.",
+        line2:
+          "Move toward the intended target and click when it is the captured selection.",
+      };
+    }
+
     function showRestScreen(isFirstScreen) {
       studyState = "rest";
       isStudyRunning = false;
@@ -260,49 +287,85 @@
       if (!nextCondition) return;
 
       var orderLabel = techniqueOrder.join(" -> ");
+      var isTechniqueTransition = nextCondition.techniqueBlockConditionIndex === 0;
+      var briefing = getTechniqueBriefing(nextCondition.technique);
 
       if (isFirstScreen) {
-        setStatusText(
-          "Welcome. Read the instructions below before starting.",
-          "Participant " +
-            participantId +
-            " | Technique order: " +
-            orderLabel +
-            " | Group " +
-            (participantOrderGroup + 1),
-          "You will complete " +
-            conditions.length +
-            " conditions, each with " +
-            trialsPerCondition +
-            " trials.",
-          "Click when ready. Timing starts after you begin each condition."
-        );
+        if (isTechniqueTransition) {
+          setStatusText(
+            "Welcome. Read instructions before starting.",
+            "Participant " +
+              participantId +
+              " | Technique order: " +
+              orderLabel +
+              " | Group " +
+              (participantOrderGroup + 1),
+            briefing.line1,
+            briefing.line2
+          );
+        } else {
+          setStatusText(
+            "Welcome. Read the instructions below before starting.",
+            "Participant " +
+              participantId +
+              " | Technique order: " +
+              orderLabel +
+              " | Group " +
+              (participantOrderGroup + 1),
+            "You will complete " +
+              conditions.length +
+              " conditions, each with " +
+              trialsPerCondition +
+              " trials.",
+            "Click when ready. Timing starts after you begin each condition."
+          );
+        }
         setCanvasPrompt(
           true,
           "Click Here When Ready",
-          "Start condition " + (nextCondition.conditionIndex + 1) + " of " + conditions.length
+          "Start " +
+            nextCondition.technique +
+            " tasks (condition " +
+            (nextCondition.conditionIndex + 1) +
+            " of " +
+            conditions.length +
+            ")"
         );
       } else {
-        setStatusText(
-          "Condition complete. Take a short rest.",
-          "Next: condition " +
-            (nextCondition.conditionIndex + 1) +
-            " / " +
-            conditions.length +
-            " (" +
-            nextCondition.technique +
-            ", size " +
-            nextCondition.sizeLevel +
-            ", spacing " +
-            nextCondition.spacingLevel +
-            ")",
-          "Each condition has " + trialsPerCondition + " trials.",
-          "Click when ready to continue."
-        );
+        if (isTechniqueTransition) {
+          setStatusText(
+            "New cursor technique: " + nextCondition.technique,
+            briefing.line1,
+            briefing.line2,
+            "Click when ready to begin this technique block."
+          );
+        } else {
+          setStatusText(
+            "Condition complete. Take a short rest.",
+            "Next: condition " +
+              (nextCondition.conditionIndex + 1) +
+              " / " +
+              conditions.length +
+              " (" +
+              nextCondition.technique +
+              ", size " +
+              nextCondition.sizeLevel +
+              ", spacing " +
+              nextCondition.spacingLevel +
+              ")",
+            "Each condition has " + trialsPerCondition + " trials.",
+            "Click when ready to continue."
+          );
+        }
         setCanvasPrompt(
           true,
           "Click Here When Ready",
-          "Begin condition " + (nextCondition.conditionIndex + 1) + " of " + conditions.length
+          isTechniqueTransition
+            ? "Begin " + nextCondition.technique + " tasks"
+            : "Begin condition " +
+              (nextCondition.conditionIndex + 1) +
+              " of " +
+              conditions.length
         );
       }
 

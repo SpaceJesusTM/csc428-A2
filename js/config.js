@@ -4,7 +4,7 @@
     canvasHeight: 500,
     numTargetsPerCondition: 30,
     trialsPerCondition: 5,
-    blocksPerCondition: 2,
+    blocksPerCondition: 3,
     practiceTrials: 5,
     areaRadius: 50,
     sizeLevels: [
